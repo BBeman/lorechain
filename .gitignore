@@ -1,0 +1,7 @@
+# Python-generated files
+__pycache__/
+.DS_Store
+
+# Virtual environments
+.venv
+.env
