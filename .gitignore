@@ -5,3 +5,6 @@ __pycache__/
 # Virtual environments
 .venv
 .env
+
+# Local planning / scaffolding (keep out of the repo)
+loreweaver_langchain_plan.md
