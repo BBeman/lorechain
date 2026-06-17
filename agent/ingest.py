@@ -2,6 +2,8 @@ from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_openai import OpenAIEmbeddings
+from langchain_community.retrievers import BM25Retriever
+from langchain_classic.retrievers import EnsembleRetriever
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -25,16 +27,26 @@ texts = text_splitter.split_documents(all_docs)
 #print(texts[0].metadata)
 #print(texts[0].page_content)
 
-question = "who is vasquez Trenfell?"
+question = "Sacred Salt"
 
 #creating vector store using in memory, embedding using openai.
 vector_store = InMemoryVectorStore(embedding= OpenAIEmbeddings(model="text-embedding-3-small"))
 vector_store.add_documents(documents=texts)
 
 #turn vector store into a retriever
-retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-results = retriever.invoke(question)
+dense_retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+#results = dense_retriever.invoke(question)
 
+#BM25 for key word matching
+bm25_retriever = BM25Retriever.from_documents(texts)
+bm25_retriever.k = 3
+
+#ensemble retriever combines retrievals
+ensemble = EnsembleRetriever(retrievers= [bm25_retriever,dense_retriever],
+weights = [0.5,0.5]
+)
+
+results = ensemble.invoke(question)
 
 #for now a direct llm call for our RAG
 from langchain_openai import ChatOpenAI
