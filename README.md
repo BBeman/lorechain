@@ -27,7 +27,7 @@ I built it stage by stage while learning LangChain v1 and LangGraph. The sample 
         (agent decides                                 ^             |
          when to retrieve)                             |     conditional edge
                                                   loop (contradiction)
-                                                       |             |
+                                                   |             |
                                                        +-- approved ->+-> END
 ```
 
@@ -53,10 +53,10 @@ Needs [uv](https://docs.astral.sh/uv/) and an OpenAI key.
 ```bash
 uv sync
 echo "OPENAI_API_KEY=sk-..." > .env
-uv run python agent/lorechain_cli.py
+uv run python -m agent.lorechain_cli
 ```
 
-To run a piece on its own: `agent/loremaster.py` for Q&A, `agent/council.py` to generate lore.
+`agent/` is a package, so it runs as a module (`-m`) from the project root. To exercise the retriever on its own: `uv run python -m agent.ingest`.
 
 ## Examples
 

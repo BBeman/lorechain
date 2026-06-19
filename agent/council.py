@@ -1,26 +1,24 @@
 from langchain.agents import create_agent
 from langgraph.graph import StateGraph, START, END
 from langchain.tools import tool
-from ingest import build_retriever
+from .ingest import get_retriever, MODEL_NAME
 from dotenv import load_dotenv
 from typing import TypedDict
 load_dotenv()
 
-retriever = build_retriever()
-
 @tool("Hybrid_retriever", description="Hybrid Rag retriver for storyline lore questions")
 def retrieved(query : str):
-    docs = retriever.invoke(query)
+    docs = get_retriever().invoke(query)
     return "\n\n".join(d.page_content for d in docs)
 
 Architect = create_agent(
-    model= "openai:gpt-5.5",
+    model= f"openai:{MODEL_NAME}",
     tools = [retrieved],
     system_prompt="You are the Lore Architect, your role is to propose new lore on request, grounded in retrieved canon so it fits the world. You must not create Lore that does not match the current world state."
 )
 
 Continuity_keeper = create_agent(
-    model= "openai:gpt-5.5",
+    model= f"openai:{MODEL_NAME}",
     tools = [retrieved],
     system_prompt="You are the continuity keeper,begin your reply with the single word CONSISTENT or CONTRADICTION, then explain your reasoning. you critique proposal against retrieved canon and flag contradictions of proposed new lore against retrieved canon and make sure it matches against the current world lore."
 )

@@ -1,5 +1,5 @@
-from loremaster import ask_loremaster
-from council import create_lore
+from .loremaster import ask_loremaster
+from .council import create_lore
 
 
 running = True

@@ -8,6 +8,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
+# single source of truth for the chat model (used by loremaster + council)
+MODEL_NAME = "gpt-5.5"
+
 def build_retriever():
 
     #loads every markdown file with loader
@@ -47,6 +50,19 @@ def build_retriever():
     return ensemble
 
 
+# lazily-built, process-wide single retriever.
+# build_retriever() ingests + embeds the whole worldbook, so we only ever
+# want to do it once per run. Both loremaster and council import this, and
+# because they share the same module the cache is shared across them too.
+_retriever = None
+
+def get_retriever():
+    global _retriever
+    if _retriever is None:
+        _retriever = build_retriever()
+    return _retriever
+
+
 #direct test llm call
 if __name__ == "__main__":
     from langchain_openai import ChatOpenAI
@@ -55,7 +71,7 @@ if __name__ == "__main__":
     results = retriever.invoke(question)
 
 
-    model=ChatOpenAI(model = "gpt-5.5")
+    model=ChatOpenAI(model = MODEL_NAME)
     context = " ".join(doc.page_content for doc in results)
     prompt = f'use this context to answer question: {question} : context : {context}'
 
