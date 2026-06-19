@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 from typing import TypedDict
 load_dotenv()
 
-retreiver = build_retriever()
+retriever = build_retriever()
 
 @tool("Hybrid_retriever", description="Hybrid Rag retriver for storyline lore questions")
 def retrieved(query : str):
-    docs = retreiver.invoke(query)
+    docs = retriever.invoke(query)
     return "\n\n".join(d.page_content for d in docs)
 
 Architect = create_agent(
@@ -62,10 +62,10 @@ workflow = (
     .add_conditional_edges("keeper", route, {"done": END, "loop": "architect"})
     .compile()
 )
-
-result = workflow.invoke({"request": "Invent a hero who reached the summit of Mount Swolympus before Brock Ironhowe", "proposal": "", "is_consistent": False, "feedback": "", "attempts": 0})
-print("attempts:", result["attempts"])
-print("approved:", result["is_consistent"])
-print("final lore:\n", result["proposal"])
+def create_lore(request: str):
+    result = workflow.invoke({"request": request, "proposal": "", "is_consistent": False, "feedback": "", "attempts": 0})
+    #return("attempts:", result["attempts"])
+    #return("approved:", result["is_consistent"])
+    return f"final lore:\n, {result['proposal']}"
 
 

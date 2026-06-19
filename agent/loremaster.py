@@ -4,13 +4,11 @@ from ingest import build_retriever
 from  dotenv import load_dotenv
 load_dotenv()
 
-retreiver = build_retriever()
-
-user_question = input("Ask the LoreMaster: ")
+retriever = build_retriever()
 
 @tool("Hybrid_retriever", description="Hybrid Rag retriver for storyline lore questions")
 def retrieved(query : str):
-    docs = retreiver.invoke(query)
+    docs = retriever.invoke(query)
     return "\n\n".join(d.page_content for d in docs)
 
 
@@ -20,12 +18,13 @@ agent = create_agent(
     system_prompt = "You are the LoreMaster. Use the retriever tool to find lore and answer only from what it returns. for questions unrelated to swoletheim answer directly"
 )
 
-result = agent.invoke(
-    {"messages" : [{"role": "user", "content": user_question}]}
-)
+def ask_loremaster(question: str) -> str:
+    result = agent.invoke(
+        {"messages" : [{"role": "user", "content": question}]}
+    )
 
-#Below is to just print the final answer
-#print(result["messages"][-1].content_blocks)
+    #Below is to just print the final answer
+    return(result["messages"][-1].content)
 
-#We want to demonstrate tool calling
-print(result["messages"])
+    #We want to demonstrate tool calling
+    #print(result["messages"])
