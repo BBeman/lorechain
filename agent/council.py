@@ -11,17 +11,30 @@ def retrieved(query : str):
     docs = get_retriever().invoke(query)
     return "\n\n".join(d.page_content for d in docs)
 
-Architect = create_agent(
-    model= f"openai:{MODEL_NAME}",
-    tools = [retrieved],
-    system_prompt="You are the Lore Architect, your role is to propose new lore on request, grounded in retrieved canon so it fits the world. You must not create Lore that does not match the current world state."
-)
+#agents are lazy same as get_retriever in ingest, building them needs an api key
+#so we only do it on first use, that way importing this file for tests doesnt crash
+_architect = None
+_keeper = None
 
-Continuity_keeper = create_agent(
-    model= f"openai:{MODEL_NAME}",
-    tools = [retrieved],
-    system_prompt="You are the continuity keeper,begin your reply with the single word CONSISTENT or CONTRADICTION, then explain your reasoning. you critique proposal against retrieved canon and flag contradictions of proposed new lore against retrieved canon and make sure it matches against the current world lore."
-)
+def get_architect():
+    global _architect
+    if _architect is None:
+        _architect = create_agent(
+            model= f"openai:{MODEL_NAME}",
+            tools = [retrieved],
+            system_prompt="You are the Lore Architect, your role is to propose new lore on request, grounded in retrieved canon so it fits the world. You must not create Lore that does not match the current world state."
+        )
+    return _architect
+
+def get_keeper():
+    global _keeper
+    if _keeper is None:
+        _keeper = create_agent(
+            model= f"openai:{MODEL_NAME}",
+            tools = [retrieved],
+            system_prompt="You are the continuity keeper,begin your reply with the single word CONSISTENT or CONTRADICTION, then explain your reasoning. you critique proposal against retrieved canon and flag contradictions of proposed new lore against retrieved canon and make sure it matches against the current world lore."
+        )
+    return _keeper
 
 class State(TypedDict):
     request : str
@@ -35,15 +48,20 @@ def Architect_node(state: State) -> dict:
     content = state["request"]
     if state["feedback"]:            
         content += f"\n\nYour previous proposal was rejected. Fix this: {state['feedback']}"
-    result = Architect.invoke({"messages": [{"role": "user", "content": content}]})
+    result = get_architect().invoke({"messages": [{"role": "user", "content": content}]})
     return {"proposal": result["messages"][-1].content, "attempts": state["attempts"] + 1}
 
 
+def parse_verdict(text: str) -> bool:
+    # the keeper is told to begin its reply with CONSISTENT or CONTRADICTION.
+    # we approve only when the reply starts with CONSISTENT, anything else is a rejection.
+    return text.strip().upper().startswith("CONSISTENT")
+
+
 def Keeper_node(state: State) -> dict:
-    result = Continuity_keeper.invoke({"messages": [{"role": "user", "content": state["proposal"]}]})
+    result = get_keeper().invoke({"messages": [{"role": "user", "content": state["proposal"]}]})
     text = result["messages"][-1].content
-    is_consistent = text.strip().upper().startswith("CONSISTENT")
-    return {"is_consistent": is_consistent, "feedback": text}
+    return {"is_consistent": parse_verdict(text), "feedback": text}
 
 
 def route(state):
@@ -62,8 +80,6 @@ workflow = (
 )
 def create_lore(request: str):
     result = workflow.invoke({"request": request, "proposal": "", "is_consistent": False, "feedback": "", "attempts": 0})
-    #return("attempts:", result["attempts"])
-    #return("approved:", result["is_consistent"])
-    return f"final lore:\n, {result['proposal']}"
+    return f"final lore:\n{result['proposal']}"
 
 
